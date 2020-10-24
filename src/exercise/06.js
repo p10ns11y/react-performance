@@ -21,9 +21,9 @@ function appReducer(state, action) {
   switch (action.type) {
     // we're no longer managing the dogName state in our reducer
     // 💣 remove this case
-    case 'TYPED_IN_DOG_INPUT': {
-      return {...state, dogName: action.dogName}
-    }
+    // case 'TYPED_IN_DOG_INPUT': {
+    //   return {...state, dogName: action.dogName}
+    // }
     case 'UPDATE_GRID_CELL': {
       return {...state, grid: updateGridCellState(state.grid, action)}
     }
@@ -39,7 +39,7 @@ function appReducer(state, action) {
 function AppProvider({children}) {
   const [state, dispatch] = React.useReducer(appReducer, {
     // 💣 remove the dogName state because we're no longer managing that
-    dogName: '',
+    // dogName: '',
     grid: initialGrid,
   })
   return (
@@ -65,6 +65,37 @@ function useAppDispatch() {
     throw new Error('useAppDispatch must be used within the AppProvider')
   }
   return context
+}
+
+const DogNameStateContext = React.createContext()
+const DogNameUpdaterContext = React.createContext()
+
+function useDogNameState() {
+  const context = React.useContext(DogNameStateContext)
+  if (context === undefined) {
+    throw new Error('useDogNameState must be used within the DogProvider')
+  }
+  return context
+}
+
+function useDogNameUpdater() {
+  const context = React.useContext(DogNameUpdaterContext)
+  if (context === undefined) {
+    throw new Error('useDogNameUpdater must be used within the DogProvider')
+  }
+  return context
+}
+
+function DogProvider({children}) {
+  const [dogName, setDogName] = React.useState('')
+
+  return (
+    <DogNameUpdaterContext.Provider value={setDogName}>
+      <DogNameStateContext.Provider value={dogName}>
+        {children}
+      </DogNameStateContext.Provider>
+    </DogNameUpdaterContext.Provider>
+  )
 }
 
 function Grid() {
@@ -108,14 +139,18 @@ Cell = React.memo(Cell)
 function DogNameInput() {
   // 🐨 replace the useAppState and useAppDispatch with a normal useState here
   // to manage the dogName locally within this component
-  const state = useAppState()
-  const dispatch = useAppDispatch()
-  const {dogName} = state
+  // const state = useAppState()
+  // const dispatch = useAppDispatch()
+  // const {dogName} = state
+  // const [dogName, setDogName] = React.useState('')
+  const dogName = useDogNameState()
+  const setDogName = useDogNameUpdater()
 
   function handleChange(event) {
     const newDogName = event.target.value
     // 🐨 change this to call your state setter that you get from useState
-    dispatch({type: 'TYPED_IN_DOG_INPUT', dogName: newDogName})
+    // dispatch({type: 'TYPED_IN_DOG_INPUT', dogName: newDogName})
+    setDogName(newDogName)
   }
 
   return (
@@ -140,12 +175,14 @@ function App() {
   return (
     <div className="grid-app">
       <button onClick={forceRerender}>force rerender</button>
-      <AppProvider>
-        <div>
+      <div>
+        <DogProvider>
           <DogNameInput />
+        </DogProvider>
+        <AppProvider>
           <Grid />
-        </div>
-      </AppProvider>
+        </AppProvider>
+      </div>
     </div>
   )
 }

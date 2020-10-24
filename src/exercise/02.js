@@ -3,8 +3,8 @@
 
 import React from 'react'
 import {useCombobox} from '../use-combobox'
-import {getItems} from '../filter-cities'
-import {useForceRerender} from '../utils'
+import {getItems} from '../workerized-filter-cities'
+import {useForceRerender, useAsync} from '../utils'
 
 function Menu({
   items,
@@ -58,11 +58,12 @@ function ListItem({
 
 function App() {
   const forceRerender = useForceRerender()
+  const {data: allItems, error, status, run} = useAsync({data: []})
   const [inputValue, setInputValue] = React.useState('')
 
   // 🐨 wrap getItems in a call to `React.useMemo`
-  const allItems = getItems(inputValue)
-  const items = allItems.slice(0, 100)
+  // const allItems = React.useMemo(() => getItems(inputValue), [inputValue])
+  const items = allItems?.slice(0, 100)
 
   const {
     selectedItem,
@@ -74,7 +75,7 @@ function App() {
     getMenuProps,
     selectItem,
   } = useCombobox({
-    items,
+    items: items,
     inputValue,
     onInputValueChange: ({inputValue: newValue}) => setInputValue(newValue),
     onSelectedItemChange: ({selectedItem}) =>
@@ -85,6 +86,18 @@ function App() {
       ),
     itemToString: item => (item ? item.name : ''),
   })
+
+  React.useEffect(() => {
+    run(getItems(inputValue))
+  }, [inputValue, run])
+
+  if (status === 'idle' || status === 'loading') {
+    return 'loading...'
+  }
+
+  if (error) {
+    return 'error'
+  }
 
   return (
     <div className="city-app">
